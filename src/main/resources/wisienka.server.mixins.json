@@ -1,0 +1,21 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "io.github.ahaququq.wisienka.server.mixin",
+  "compatibilityLevel": "JAVA_17",
+  "mixins": [
+    "JoinToLoginWorldMixin",
+    "ServerLoginNetworkHandlerInnerMixin"
+  ],
+  "client": [
+  ],
+  "server": [
+    "RailwaysMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  },
+  "overwrites": {
+    "requireAnnotations": true
+  }
+}
