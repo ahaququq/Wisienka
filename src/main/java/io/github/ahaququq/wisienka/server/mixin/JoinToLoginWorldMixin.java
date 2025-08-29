@@ -4,7 +4,7 @@ import com.llamalad7.mixinextras.sugar.Local;
 import com.llamalad7.mixinextras.sugar.ref.LocalRef;
 import com.mojang.authlib.GameProfile;
 import io.github.ahaququq.wisienka.Wisienka;
-import io.github.ahaququq.wisienka.login.LoginManager;
+import io.github.ahaququq.wisienka.login.OnlinePlayerDatabase;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.network.ClientConnection;
 import net.minecraft.registry.RegistryKey;
@@ -40,7 +40,8 @@ public class JoinToLoginWorldMixin {
 			@Local( name = "nbtCompound" ) NbtCompound nbtCompound
 	) {
 		GameProfile profile = player.getGameProfile();
-		if (LoginManager.INSTANCE.shouldChangeSpawn(profile)) {
+		OnlinePlayerDatabase.OnlinePlayer playerEntry = OnlinePlayerDatabase.INSTANCE.get(profile);
+		if (playerEntry != null && playerEntry.getShouldChangeSpawn()) {
 			registryKey.set(RegistryKey.of(RegistryKeys.WORLD, Wisienka.Companion.id("login_world")));
 			Wisienka.Companion.getLogger().info("Spawning player {} changed", profile.getName());
 		} else {

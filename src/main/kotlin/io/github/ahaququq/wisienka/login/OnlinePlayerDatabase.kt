@@ -12,10 +12,12 @@ object OnlinePlayerDatabase {
 		val profile: GameProfile,
 		val premiumInfo: PremiumInfo,
 		val loginInfo: LoginInfo,
-		val currentAccountUUID: UUID?,
+		var currentAccountUUID: UUID?,
 	) {
-		val isLoggedIn: Boolean get() = currentAccountUUID == null
+		val isLoggedIn: Boolean get() = currentAccountUUID != null
 		val currentAccount: AccountDatabase.Account? get() = currentAccountUUID?.let { AccountDatabase[it] }
+
+		val shouldChangeSpawn: Boolean get() = false
 
 		/**
 		 * Handles the player leaving the server and removes the entry from the database
@@ -37,6 +39,10 @@ object OnlinePlayerDatabase {
 	operator fun get(profile: GameProfile): OnlinePlayer? = players.filter {
 			(_, value) -> value.profile == profile
 	}.getAnyValue()
+
+	fun getUUID(profile: GameProfile): UUID? = players.filter {
+			(_, value) -> value.profile == profile
+	}.getAnyKey()
 
 	/**
 	 * @return A random, temporary `GameProfile`
@@ -71,7 +77,7 @@ object OnlinePlayerDatabase {
 	/**
 	 * Removes the player from the server
 	 */
-	internal fun onDisconnection(profile: GameProfile) {
+	private fun onDisconnection(profile: GameProfile) {
 		players.remove(players.filter { (_, value) -> value.profile == profile }.getAnyKey())
 	}
 }

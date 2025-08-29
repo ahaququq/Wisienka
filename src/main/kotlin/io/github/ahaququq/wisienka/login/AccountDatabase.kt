@@ -1,6 +1,7 @@
 package io.github.ahaququq.wisienka.login
 
 import com.mojang.authlib.GameProfile
+import io.github.ahaququq.wisienka.getAnyKey
 import io.github.ahaququq.wisienka.getAnyValue
 import java.util.*
 
@@ -13,7 +14,7 @@ object AccountDatabase {
 		val premiumProfiles: MutableList<GameProfile>,
 		var currentPlayerUUID: UUID?,
 	) {
-		val loggedIn: Boolean get() = currentPlayerUUID == null
+		val loggedIn: Boolean get() = currentPlayerUUID != null
 		val currentPlayer: OnlinePlayerDatabase.OnlinePlayer? get() = currentPlayerUUID?.let { OnlinePlayerDatabase[it] }
 
 		fun isProfileLinked(profile: GameProfile) = premiumProfiles.contains(profile)
@@ -23,6 +24,10 @@ object AccountDatabase {
 	operator fun get(username: String): Account? = accounts.filter {
 		(_, value) -> value.username == username
 	}.getAnyValue()
+
+	fun getUUID(username: String): UUID? = accounts.filter {
+		(_, value) -> value.username == username
+	}.getAnyKey()
 
 	/**
 	 * Creates a new account
@@ -62,4 +67,6 @@ object AccountDatabase {
 	 */
 	fun createAccount(username: String, authInfo: AuthInfo, vararg premiumProfiles: GameProfile) =
 		createAccount(username, authInfo, mutableListOf(*premiumProfiles))
+
+	fun canCreateAccount(username: String) = !accounts.any { (_, account) -> account.username == username }
 }

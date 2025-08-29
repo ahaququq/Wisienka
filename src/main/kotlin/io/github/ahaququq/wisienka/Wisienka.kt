@@ -3,9 +3,8 @@ package io.github.ahaququq.wisienka
 import com.simibubi.create.Create
 import dev.architectury.utils.Env
 import dev.architectury.utils.EnvExecutor
-import io.github.ahaququq.wisienka.login.LoginManager
+import io.github.ahaququq.wisienka.login.OnlinePlayerDatabase
 import io.github.ahaququq.wisienka.login.ServerLoginHandler
-import io.github.ahaququq.wisienka.networking.ServerNetworking
 import io.github.ahaququq.wisienka.server.WisienkaServer
 import net.fabricmc.api.ModInitializer
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents
@@ -40,7 +39,7 @@ class Wisienka : ModInitializer {
 		ServerTickEvents.START_SERVER_TICK.register {
 			for (player in it.playerManager.playerList) if (
 				player.world.dimensionKey.value == id("login_world_type") &&
-				LoginManager.shouldChangeSpawn(player.gameProfile)
+				OnlinePlayerDatabase[player.gameProfile]?.shouldChangeSpawn == true
 			) player.setSpawnPoint(
 				RegistryKey.of(RegistryKeys.WORLD, id("login_world")),
 				BlockPos(0, 65, 0),
@@ -50,7 +49,6 @@ class Wisienka : ModInitializer {
 			)
 		}
 
-		ServerNetworking.init()
 		ServerLoginHandler.init()
 	}
 }
