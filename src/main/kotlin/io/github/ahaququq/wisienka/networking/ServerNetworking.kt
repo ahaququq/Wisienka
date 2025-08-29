@@ -1,7 +1,7 @@
 package io.github.ahaququq.wisienka.networking
 
 import io.github.ahaququq.wisienka.Wisienka.Companion.logger
-import io.github.ahaququq.wisienka.server.login.LoginManager
+import io.github.ahaququq.wisienka.login.LoginManager
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents
 import net.fabricmc.fabric.api.networking.v1.PacketByteBufs
 import net.fabricmc.fabric.api.networking.v1.PacketSender

@@ -41,5 +41,16 @@ object ClientNetworking {
 		) {
 			LoginHelper.onSalt(client, handler, buf, responseSender)
 		})
+
+		ClientPlayNetworking.registerGlobalReceiver(PacketIDs.LOGIN_FINISHED_PACKET_S2C, fun(
+			client: MinecraftClient,
+			handler: ClientPlayNetworkHandler,
+			buf: PacketByteBuf,
+			responseSender: PacketSender
+		) {
+			client.execute {
+				client.setScreen(null)
+			}
+		})
 	}
 }

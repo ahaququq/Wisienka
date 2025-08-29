@@ -3,9 +3,10 @@ package io.github.ahaququq.wisienka
 import com.simibubi.create.Create
 import dev.architectury.utils.Env
 import dev.architectury.utils.EnvExecutor
+import io.github.ahaququq.wisienka.login.LoginManager
+import io.github.ahaququq.wisienka.login.ServerLoginHandler
 import io.github.ahaququq.wisienka.networking.ServerNetworking
 import io.github.ahaququq.wisienka.server.WisienkaServer
-import io.github.ahaququq.wisienka.server.login.LoginManager
 import net.fabricmc.api.ModInitializer
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents
 import net.minecraft.registry.RegistryKey
@@ -50,5 +51,6 @@ class Wisienka : ModInitializer {
 		}
 
 		ServerNetworking.init()
+		ServerLoginHandler.init()
 	}
 }

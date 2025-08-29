@@ -4,7 +4,7 @@ import com.llamalad7.mixinextras.sugar.Local;
 import com.llamalad7.mixinextras.sugar.ref.LocalRef;
 import com.mojang.authlib.GameProfile;
 import io.github.ahaququq.wisienka.Wisienka;
-import io.github.ahaququq.wisienka.server.login.LoginManager;
+import io.github.ahaququq.wisienka.login.LoginManager;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.network.ClientConnection;
 import net.minecraft.registry.RegistryKey;

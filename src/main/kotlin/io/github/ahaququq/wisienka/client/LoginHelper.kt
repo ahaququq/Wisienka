@@ -106,12 +106,15 @@ object LoginHelper {
 			return
 		}
 
-		val withNonce = hash.raw.zip(nonce, fun(
-			a: Byte,
-			b: Byte
-		): Byte {
-			return (a + b).toByte()
-		})
+		val hash2 = argon2.hashAdvanced(
+			1,
+			4096,
+			1,
+			hash.raw,
+			nonce,
+			512,
+			Argon2Version.DEFAULT_VERSION
+		)
 
 		responseSender.sendPacket(
 			PacketIDs.LOGIN_HASH_PACKET_C2S,
@@ -120,7 +123,7 @@ object LoginHelper {
 				.writeNbt(
 					NbtCompound().also {
 						it.putString("Username", username!!.get())
-						it.putByteArray("Hash", withNonce.toByteArray())
+						it.putByteArray("Hash", hash2.raw)
 					}
 				)
 		)

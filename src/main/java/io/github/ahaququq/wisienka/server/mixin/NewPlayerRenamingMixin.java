@@ -1,7 +1,9 @@
 package io.github.ahaququq.wisienka.server.mixin;
 
 import io.github.ahaququq.wisienka.Wisienka;
-import io.github.ahaququq.wisienka.server.login.LoginManager;
+import io.github.ahaququq.wisienka.login.LoginManager;
+import io.github.ahaququq.wisienka.login.OnlinePlayerDatabase;
+import io.github.ahaququq.wisienka.login.PremiumInfo;
 import net.minecraft.server.network.ServerLoginNetworkHandler;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -11,7 +13,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(targets = "net.minecraft.server.network.ServerLoginNetworkHandler$1")
-public class ServerLoginNetworkHandlerInnerMixin {
+public class NewPlayerRenamingMixin {
 	@Shadow
 	@Final
 	ServerLoginNetworkHandler field_14176;
@@ -28,10 +30,12 @@ public class ServerLoginNetworkHandlerInnerMixin {
 		Wisienka.Companion.getLogger().info("Player login state: {}", field_14176.state.name());
 		if (field_14176.profile == null) {
 			Wisienka.Companion.getLogger().info("Player does not have a profile");
-			field_14176.profile = LoginManager.INSTANCE.newPlayer(null, false);
+//			field_14176.profile = LoginManager.INSTANCE.newPlayer(null);
+			field_14176.profile = OnlinePlayerDatabase.INSTANCE.handleNewPlayer(new PremiumInfo());
 		} else {
 			Wisienka.Companion.getLogger().info("Player old profile: {}", field_14176.profile);
-			field_14176.profile = LoginManager.INSTANCE.newPlayer(field_14176.profile, true);
+//			field_14176.profile = LoginManager.INSTANCE.newPlayer(field_14176.profile);
+			field_14176.profile = OnlinePlayerDatabase.INSTANCE.handleNewPlayer(new PremiumInfo(field_14176.profile));
 		}
 		Wisienka.Companion.getLogger().info("Player new profile: {}", field_14176.profile);
 	}

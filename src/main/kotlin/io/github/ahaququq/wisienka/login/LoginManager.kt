@@ -1,16 +1,20 @@
-package io.github.ahaququq.wisienka.server.login
+package io.github.ahaququq.wisienka.login
 
 import com.mojang.authlib.GameProfile
+import de.mkammerer.argon2.Argon2Factory
+import de.mkammerer.argon2.Argon2Version
 import io.github.ahaququq.wisienka.Wisienka
 import io.github.ahaququq.wisienka.networking.PacketIDs
 import net.fabricmc.fabric.api.networking.v1.PacketByteBufs
 import net.fabricmc.fabric.api.networking.v1.PacketSender
 import net.minecraft.nbt.NbtCompound
 import net.minecraft.network.PacketByteBuf
+import net.minecraft.network.packet.s2c.play.PositionFlag
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.network.ServerPlayNetworkHandler
 import net.minecraft.server.network.ServerPlayerEntity
 import net.minecraft.text.Text
+import net.minecraft.world.World
 import java.security.SecureRandom
 import java.util.*
 
@@ -18,47 +22,41 @@ object LoginManager {
 	class PlayerEntry(
 		var originalProfile: GameProfile?,
 		var newProfile: GameProfile,
-		var premium: Boolean,
 		var state: State = State.LOGGING_IN,
 		var nonce: ByteArray = ByteArray(512) { 0 },
 		var age: Int = 0
 	) {
-		enum class State {
-			LOGGING_IN,
-			NONCE,
-			SALT,
-			PLAYING,
+		val premium: Boolean
+			get() = originalProfile == null
+
+		enum class State(val changeSpawn: Boolean) {
+			LOGGING_IN(true),
+			SALT(true),
+			MENU(true),
+			PLAYING(false),
 		}
 	}
 
-	val players = mutableListOf<PlayerEntry>()
+	var players = mutableListOf<PlayerEntry>()
 
-	fun newPlayer(
-		originalProfile: GameProfile?,
-		premium: Boolean
-	): GameProfile {
-		val uuid = UUID.randomUUID()
-		val playerEntry = PlayerEntry(
-			originalProfile,
-			GameProfile(uuid, "%$uuid".substring(0..15)),
-			premium
-		)
+	fun newProfile(): GameProfile = UUID.randomUUID().run { GameProfile(this, "%$this".substring(0..15)) }
+
+	fun newPlayer(originalProfile: GameProfile?): GameProfile {
+		val playerEntry = PlayerEntry(originalProfile, newProfile())
 		players.add(playerEntry)
 		return playerEntry.newProfile
 	}
 
-	fun shouldChangeSpawn(profile: GameProfile): Boolean {
-		return !(players.filter { it.newProfile == profile }.all { it.state == PlayerEntry.State.PLAYING })
-	}
+	fun shouldChangeSpawn(profile: GameProfile) = players.find { it.newProfile == profile }?.state?.changeSpawn ?: false
+	fun remove(profile: GameProfile, server: MinecraftServer) = players.removeIf { it.newProfile == profile }
 
-	fun remove(profile: GameProfile, server: MinecraftServer) {
-//		players.filter { it.newProfile == profile }.forEach {
-//			server.playerManager.getPlayer(it.newProfile.id)?.networkHandler?.disconnect(Text.of("Login took too long!"))
-//		}
-		players.removeIf { it.newProfile == profile }
-	}
-
-	data class Account(val username: String, val hash: ByteArray, val salt: ByteArray, val premiumProfile: GameProfile?) {
+	data class Account(
+		val username: String,
+		val hash: ByteArray,
+		val salt: ByteArray,
+		val premiumProfile: GameProfile?,
+		val menuProfile: GameProfile?
+	) {
 		override fun equals(other: Any?): Boolean {
 			if (this === other) return true
 			if (javaClass != other?.javaClass) return false
@@ -69,6 +67,7 @@ object LoginManager {
 			if (!hash.contentEquals(other.hash)) return false
 			if (!salt.contentEquals(other.salt)) return false
 			if (premiumProfile != other.premiumProfile) return false
+			if (menuProfile != other.menuProfile) return false
 
 			return true
 		}
@@ -78,11 +77,16 @@ object LoginManager {
 			result = 31 * result + hash.contentHashCode()
 			result = 31 * result + salt.contentHashCode()
 			result = 31 * result + (premiumProfile?.hashCode() ?: 0)
+			result = 31 * result + (menuProfile?.hashCode() ?: 0)
 			return result
 		}
 	}
 
 	val accounts = mutableListOf<Account>()
+
+	fun openMenu(entry: PlayerEntry, player: ServerPlayerEntity, account: Account) {
+		entry.state = PlayerEntry.State.MENU
+	}
 
 	private fun playerEntry(player: ServerPlayerEntity): PlayerEntry? {
 		val entry = players.filter {
@@ -117,10 +121,13 @@ object LoginManager {
 			username,
 			hash,
 			salt,
-			entry.originalProfile
+			entry.originalProfile,
+			null
 		))
 
-		entry.state = PlayerEntry.State.PLAYING
+		val account = accounts.last()
+
+		openMenu(entry, player, account)
 	}
 
 	fun getNonce(
@@ -173,10 +180,10 @@ object LoginManager {
 	fun tick(server: MinecraftServer) {
 		for (it in players) {
 			if (it.age++ > 20 * 60 * 5) {
-				players.remove(it)
 				server.playerManager.getPlayer(it.newProfile.id)?.networkHandler?.disconnect(Text.of("Login took too long!"))
 			}
 		}
+		players.removeIf { it.age > 20 * 60 * 5 }
 	}
 
 	fun login(
@@ -214,20 +221,49 @@ object LoginManager {
 		val salt = account.salt
 		val nonce = entry.nonce
 
-		val withNonce = hash.zip(nonce, fun(
-			a: Byte,
-			b: Byte
-		): Byte {
-			return (a + b).toByte()
-		})
+		val argon2 = Argon2Factory.createAdvanced(Argon2Factory.Argon2Types.ARGON2id, 512, 512)
+
+		val hash2 = argon2.hashAdvanced(
+			1,
+			4096,
+			1,
+			hash,
+			nonce,
+			512,
+			Argon2Version.DEFAULT_VERSION
+		)
 
 		val recieved = nbt.getByteArray("Hash")
 
-		val matching = recieved.zip(withNonce) { a, b -> a == b }.all { it }
+		val matching = recieved.zip(hash2.raw) { a, b -> a == b }.all { it }
 
 		Wisienka.logger.info("Matching: $matching")
 
-		handler.disconnect(Text.of("Logged in!"))
-		remove(player.gameProfile, server)
+		if (!matching) {
+			handler.disconnect(Text.of("Wrong password!"))
+			remove(player.gameProfile, server)
+			return
+		}
+
+		entry.state = PlayerEntry.State.PLAYING
+
+		responseSender.sendPacket(PacketIDs.LOGIN_FINISHED_PACKET_S2C, PacketByteBufs.empty())
+
+		player.setSpawnPoint(
+			World.OVERWORLD,
+			server.overworld.spawnPos,
+			server.overworld.spawnAngle,
+			true,
+			false
+		)
+		player.teleport(
+			server.overworld,
+			server.overworld.spawnPos.x.toDouble(),
+			server.overworld.spawnPos.y.toDouble(),
+			server.overworld.spawnPos.z.toDouble(),
+			setOf<PositionFlag>(),
+			0.0f,
+			0.0f,
+		)
 	}
 }
