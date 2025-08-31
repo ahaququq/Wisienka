@@ -1,7 +1,6 @@
 package io.github.ahaququq.wisienka.server.mixin;
 
 import io.github.ahaququq.wisienka.Wisienka;
-import io.github.ahaququq.wisienka.login.LoginManager;
 import io.github.ahaququq.wisienka.login.OnlinePlayerDatabase;
 import io.github.ahaququq.wisienka.login.PremiumInfo;
 import net.minecraft.server.network.ServerLoginNetworkHandler;
@@ -30,11 +29,9 @@ public class NewPlayerRenamingMixin {
 		Wisienka.Companion.getLogger().info("Player login state: {}", field_14176.state.name());
 		if (field_14176.profile == null) {
 			Wisienka.Companion.getLogger().info("Player does not have a profile");
-//			field_14176.profile = LoginManager.INSTANCE.newPlayer(null);
 			field_14176.profile = OnlinePlayerDatabase.INSTANCE.handleNewPlayer(new PremiumInfo());
 		} else {
 			Wisienka.Companion.getLogger().info("Player old profile: {}", field_14176.profile);
-//			field_14176.profile = LoginManager.INSTANCE.newPlayer(field_14176.profile);
 			field_14176.profile = OnlinePlayerDatabase.INSTANCE.handleNewPlayer(new PremiumInfo(field_14176.profile));
 		}
 		Wisienka.Companion.getLogger().info("Player new profile: {}", field_14176.profile);

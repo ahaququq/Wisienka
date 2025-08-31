@@ -17,7 +17,7 @@ object OnlinePlayerDatabase {
 		val isLoggedIn: Boolean get() = currentAccountUUID != null
 		val currentAccount: AccountDatabase.Account? get() = currentAccountUUID?.let { AccountDatabase[it] }
 
-		val shouldChangeSpawn: Boolean get() = false
+		val shouldChangeSpawn: Boolean get() = loginInfo.state.shouldRelocate
 
 		/**
 		 * Handles the player leaving the server and removes the entry from the database

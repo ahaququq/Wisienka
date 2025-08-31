@@ -5,7 +5,8 @@
   "compatibilityLevel": "JAVA_17",
   "mixins": [
     "JoinToLoginWorldMixin",
-    "NewPlayerRenamingMixin"
+    "NewPlayerRenamingMixin",
+    "OfflineNewPlayerRenamingMixin"
   ],
   "client": [
   ],

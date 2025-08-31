@@ -5,25 +5,28 @@ import io.github.ahaququq.imkotlin.ImColor
 import io.github.ahaququq.imkotlin.ImKotlin
 import io.github.ahaququq.imkotlin.StyleVar
 import io.github.ahaququq.wisienka.Wisienka
-import io.github.ahaququq.wisienka.networking.PacketIDs
-import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking
-import net.fabricmc.fabric.api.networking.v1.PacketByteBufs
+import io.github.ahaququq.wisienka.client.login.ClientLoginHandler
+import net.fabricmc.api.EnvType
+import net.fabricmc.api.Environment
 import net.minecraft.client.gui.CubeMapRenderer
 import net.minecraft.client.gui.DrawContext
 import net.minecraft.client.gui.RotatingCubeMapRenderer
 import net.minecraft.client.gui.screen.Screen
 import net.minecraft.text.Text
 
+@Environment(EnvType.CLIENT)
 class ImGuiScreen(var parent: Screen? = null) : Screen(Text.translatable("wisienka.gui.imgui.title")) {
 	val closable: Boolean
-		get() = parent != null
+		get() = false
 
 	override fun init() {
 	}
 
 	override fun close() {
-		if (parent != null) client!!.setScreen(parent)
+		if (closable) client!!.setScreen(parent)
 	}
+
+	override fun shouldCloseOnEsc() = false
 
 	override fun render(context: DrawContext?, mouseX: Int, mouseY: Int, delta: Float) {
 		backgroundRenderer.render(delta, 1.0f)
@@ -46,7 +49,7 @@ class ImGuiScreen(var parent: Screen? = null) : Screen(Text.translatable("wisien
 			if (closable) {
 				close()
 			} else {
-				ClientPlayNetworking.send(PacketIDs.LOGIN_CANCEL_PACKET_C2S, PacketByteBufs.empty())
+				ClientLoginHandler.cancel()
 			}
 		}
 	}

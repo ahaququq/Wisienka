@@ -29,6 +29,19 @@ object ServerLoginHandler {
 		OnlinePlayerDatabase.handleDisconnection(handler.player.gameProfile)
 	}
 
+	fun loginFailed(responseSender: PacketSender, playerEntry: OnlinePlayerDatabase.OnlinePlayer, message: String) {
+		responseSender.sendPacket(
+			LoginPacketIDs.loginFailed,
+			PacketByteBufs
+				.create()
+				.writeNbt(NbtCompound().also {
+					it.putString("Message", message)
+				})
+		)
+
+		playerEntry.loginInfo.state = LoginInfo.State.HANDSHAKE
+	}
+
 	fun onHandshake(
 		server: MinecraftServer,
 		player: ServerPlayerEntity,
@@ -90,7 +103,7 @@ object ServerLoginHandler {
 		}
 
 		if (!AccountDatabase.canCreateAccount(playerEntry.loginInfo.requestedUsername!!)) {
-			handler.disconnect(Text.of("Username is already in use!"))
+			loginFailed(responseSender, playerEntry, "Username is not available!")
 			return
 		}
 
@@ -201,7 +214,7 @@ object ServerLoginHandler {
 		val account = AccountDatabase[playerEntry.loginInfo.requestedUsername!!]
 
 		if (account == null) {
-			handler.disconnect(Text.of("Account not found!"))
+			loginFailed(responseSender, playerEntry, "Account not found!")
 			return
 		}
 
@@ -248,7 +261,7 @@ object ServerLoginHandler {
 		val account = AccountDatabase[playerEntry.loginInfo.requestedUsername!!]
 
 		if (account == null) {
-			handler.disconnect(Text.of("Account not found!"))
+			loginFailed(responseSender, playerEntry, "Account not found!")
 			return
 		}
 
@@ -262,7 +275,7 @@ object ServerLoginHandler {
 		val nonce = playerEntry.loginInfo.nonce
 
 		if (!account.authInfo.checkReceivedHash(hash, nonce)) {
-			handler.disconnect(Text.of("Incorrect password!"))
+			loginFailed(responseSender, playerEntry, "Incorrect password!")
 			return
 		}
 

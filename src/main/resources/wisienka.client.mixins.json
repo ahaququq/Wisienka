@@ -4,8 +4,7 @@
   "package": "io.github.ahaququq.wisienka.client.mixin",
   "compatibilityLevel": "JAVA_17",
   "client": [
-    "ForceLoginAuthenticationMixin",
-    "TitleScreenMixin"
+    "ForceLoginAuthenticationMixin"
   ],
   "injectors": {
     "defaultRequire": 1

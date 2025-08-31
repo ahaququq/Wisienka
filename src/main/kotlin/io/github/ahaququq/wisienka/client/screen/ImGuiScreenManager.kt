@@ -1,8 +1,12 @@
 package io.github.ahaququq.wisienka.client.screen
 
+import net.fabricmc.api.EnvType
+import net.fabricmc.api.Environment
+
 typealias RenderFunction = () -> ImGuiScreenManager.Result
 typealias AfterRenderFunction = () -> ImGuiScreenManager.Result
 
+@Environment(EnvType.CLIENT)
 object ImGuiScreenManager {
 	enum class Result {
 		NONE,
@@ -20,6 +24,11 @@ object ImGuiScreenManager {
 
 	fun registerAfterRender(function: AfterRenderFunction) {
 		afterRenderFunctions.add(function)
+	}
+
+	fun reset() {
+		renderFunctions.clear()
+		afterRenderFunctions.clear()
 	}
 
 	fun render(): Boolean {

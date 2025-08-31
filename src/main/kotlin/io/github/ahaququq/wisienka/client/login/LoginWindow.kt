@@ -1,4 +1,4 @@
-package io.github.ahaququq.wisienka.login
+package io.github.ahaququq.wisienka.client.login
 
 import imgui.ImGui
 import imgui.flag.ImGuiTableColumnFlags
@@ -9,17 +9,21 @@ import io.github.ahaququq.imkotlin.ImKotlin
 import io.github.ahaququq.imkotlin.InputTextFlags
 import io.github.ahaququq.imkotlin.WindowFlags
 import io.github.ahaququq.wisienka.Wisienka
-import io.github.ahaququq.wisienka.client.screen.ImGuiScreenManager.Result
+import io.github.ahaququq.wisienka.client.screen.ImGuiScreenManager
 import io.github.ahaququq.wisienka.login.AuthInfo.Companion.allEqual
+import net.fabricmc.api.EnvType
+import net.fabricmc.api.Environment
 
+@Environment(EnvType.CLIENT)
 object LoginWindow {
-	val username = ImString()
-	val password = ImString()
-	val password2 = ImString()
-	var passwordsDontMatch = false
+	private var loginFailedMessage: String? = null
+	private val username = ImString()
+	private val password = ImString()
+	private val password2 = ImString()
+	private var passwordsDontMatch = false
 
-	fun loginWindow(): Result {
-		var result = Result.NONE
+	fun loginWindow(): ImGuiScreenManager.Result {
+		var result = ImGuiScreenManager.Result.NONE
 
 		ImGui.setNextWindowPos(ImGui.getMainViewport().centerX, ImGui.getMainViewport().centerY, ImCondition.Always.id, 0.5f, 0.5f)
 
@@ -29,12 +33,37 @@ object LoginWindow {
 
 				result = register(result)
 			}
+
+			result = popup(result)
 		}
 
 		return result
 	}
 
-	private fun ImKotlin.login(result: Result): Result {
+	fun ImKotlin.popup(result: ImGuiScreenManager.Result): ImGuiScreenManager.Result {
+		var result1 = result
+
+		if (passwordsDontMatch) ImGui.openPopup("Error Message")
+		if (loginFailedMessage != null) ImGui.openPopup("Error Message")
+
+		if (ImGui.beginPopupModal("Error Message", WindowFlags.AlwaysAutoResize.id)) {
+			if (passwordsDontMatch) text("Passwords do not match!")
+			if (passwordsDontMatch && loginFailedMessage != null) separator()
+			if (loginFailedMessage != null) text("Login failed: $loginFailedMessage")
+
+			button("Close") {
+				passwordsDontMatch = false
+				loginFailedMessage = null
+				ImGui.closeCurrentPopup()
+			}
+
+			ImGui.endPopup()
+		}
+
+		return result1
+	}
+
+	private fun ImKotlin.login(result: ImGuiScreenManager.Result): ImGuiScreenManager.Result {
 		var result1 = result
 		tabItem("Login") {
 			textWrapped("Please enter your username and password to login to your account.")
@@ -66,8 +95,8 @@ object LoginWindow {
 				column { }
 				column {
 					button("Cancel") {
-						Wisienka.logger.info("Canceled!")
-						result1 = Result.SKIP_OTHERS
+						Wisienka.Companion.logger.info("Canceled!")
+						result1 = ImGuiScreenManager.Result.CLOSE_SCREEN
 					}
 				}
 				column {
@@ -93,7 +122,7 @@ object LoginWindow {
 		return result1
 	}
 
-	private fun ImKotlin.register(result: Result): Result {
+	private fun ImKotlin.register(result: ImGuiScreenManager.Result): ImGuiScreenManager.Result {
 		var result1 = result
 		tabItem("Register") {
 			textWrapped("Create a new account. Premium accounts also require a password in case of Mojang server failure.")
@@ -136,29 +165,13 @@ object LoginWindow {
 				column { }
 				column {
 					button("Cancel") {
-						Wisienka.logger.info("Canceled!")
-						result1 = Result.SKIP_OTHERS
+						Wisienka.Companion.logger.info("Canceled!")
+						result1 = ImGuiScreenManager.Result.CLOSE_SCREEN
 					}
 				}
 				column {
 					button("Register") {
 						register()
-					}
-				}
-			}
-
-			if (passwordsDontMatch) {
-				separator()
-				table("PasswordsDontMatch", 2) {
-					tableSetupColumn("0", ImGuiTableColumnFlags.WidthStretch)
-					tableSetupColumn("1", ImGuiTableColumnFlags.WidthFixed)
-					column {
-						text("Passwords do not match!")
-					}
-					column {
-						button("X") {
-							passwordsDontMatch = false
-						}
 					}
 				}
 			}
@@ -181,5 +194,9 @@ object LoginWindow {
 		}
 
 		ClientLoginHandler.register(password.data.sliceArray(0..<password.length), username.get())
+	}
+
+	fun loginFailed(string: String) {
+		loginFailedMessage = string
 	}
 }

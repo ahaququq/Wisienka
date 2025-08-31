@@ -1,8 +1,11 @@
-package io.github.ahaququq.wisienka.login
+package io.github.ahaququq.wisienka.client.login
 
 import io.github.ahaququq.wisienka.client.screen.ImGuiScreen
 import io.github.ahaququq.wisienka.client.screen.ImGuiScreenManager
-import io.github.ahaququq.wisienka.login.LoginWindow.loginWindow
+import io.github.ahaququq.wisienka.login.AuthInfo
+import io.github.ahaququq.wisienka.login.LoginPacketIDs
+import net.fabricmc.api.EnvType
+import net.fabricmc.api.Environment
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking
 import net.fabricmc.fabric.api.networking.v1.PacketByteBufs
@@ -12,6 +15,7 @@ import net.minecraft.client.network.ClientPlayNetworkHandler
 import net.minecraft.nbt.NbtCompound
 import net.minecraft.network.PacketByteBuf
 
+@Environment(EnvType.CLIENT)
 object ClientLoginHandler {
 	fun init() {
 		ClientPlayConnectionEvents.JOIN.register(::onJoin)
@@ -19,6 +23,7 @@ object ClientLoginHandler {
 		ClientPlayNetworking.registerGlobalReceiver(LoginPacketIDs.registrationReady, ::onRegistrationReady)
 		ClientPlayNetworking.registerGlobalReceiver(LoginPacketIDs.loginReady, ::onLoginReady)
 		ClientPlayNetworking.registerGlobalReceiver(LoginPacketIDs.showMenu, ::onShowMenu)
+		ClientPlayNetworking.registerGlobalReceiver(LoginPacketIDs.loginFailed, ::onLoginFailed)
 	}
 
 	val emptyBuffer: PacketByteBuf get() = PacketByteBufs.empty()
@@ -38,7 +43,8 @@ object ClientLoginHandler {
 		responseSender: PacketSender
 	) {
 		client.execute { client.setScreen(ImGuiScreen(client.currentScreen)) }
-		ImGuiScreenManager.registerRender(::loginWindow)
+		ImGuiScreenManager.reset()
+		ImGuiScreenManager.registerRender(LoginWindow::loginWindow)
 	}
 
 	private var username: String? = null
@@ -106,7 +112,7 @@ object ClientLoginHandler {
 			PacketByteBufs
 				.create()
 				.writeNbt(NbtCompound().also {
-					it.putByteArray("Hash", AuthInfo.hashWithNonce(password, salt, nonce))
+					it.putByteArray("Hash", AuthInfo.Companion.hashWithNonce(password, salt, nonce))
 				})
 		)
 	}
@@ -120,5 +126,19 @@ object ClientLoginHandler {
 		client.execute {
 			client.setScreen(null)
 		}
+	}
+
+	fun onLoginFailed(
+		client: MinecraftClient,
+		handler: ClientPlayNetworkHandler,
+		buf: PacketByteBuf,
+		responseSender: PacketSender
+	) {
+		val nbt = buf.readNbt()!!
+		LoginWindow.loginFailed(nbt.getString("Message"))
+	}
+
+	fun cancel() {
+		ClientPlayNetworking.send()
 	}
 }
